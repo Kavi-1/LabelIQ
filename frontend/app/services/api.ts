@@ -51,6 +51,24 @@ export interface FoodAnalysisResult {
     reasoning: string;
 }
 
+export interface FoodLogEntry {
+    id?: number;
+    fdcId?: string;
+    description: string;
+    brandName?: string;
+    category?: string;
+    servingSize?: number;
+    servingUnit?: string;
+    amount: string;
+    notes?: string;
+    calories?: number;
+    protein?: number;
+    fat?: number;
+    carbs?: number;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
 class ApiService {
     private client: AxiosInstance;
 
@@ -125,6 +143,43 @@ class ApiService {
             null,
             { params: { imageUrl } }
         );
+        return res.data;
+    }
+
+    // Food Log operations
+    async createFoodLog(foodLog: FoodLogEntry): Promise<FoodLogEntry> {
+        const res = await this.client.post<FoodLogEntry>('/api/foodlogs', foodLog);
+        return res.data;
+    }
+
+    async getAllFoodLogs(): Promise<FoodLogEntry[]> {
+        const res = await this.client.get<FoodLogEntry[]>('/api/foodlogs');
+        return res.data;
+    }
+
+    async getTodaysFoodLogs(): Promise<FoodLogEntry[]> {
+        const res = await this.client.get<FoodLogEntry[]>('/api/foodlogs/today');
+        return res.data;
+    }
+
+    async getFoodLogById(id: number): Promise<FoodLogEntry> {
+        const res = await this.client.get<FoodLogEntry>(`/api/foodlogs/${id}`);
+        return res.data;
+    }
+
+    async updateFoodLog(id: number, foodLog: FoodLogEntry): Promise<FoodLogEntry> {
+        const res = await this.client.put<FoodLogEntry>(`/api/foodlogs/${id}`, foodLog);
+        return res.data;
+    }
+
+    async deleteFoodLog(id: number): Promise<void> {
+        await this.client.delete(`/api/foodlogs/${id}`);
+    }
+
+    async getFoodLogsByDateRange(startDate: string, endDate: string): Promise<FoodLogEntry[]> {
+        const res = await this.client.get<FoodLogEntry[]>('/api/foodlogs/range', {
+            params: { startDate, endDate }
+        });
         return res.data;
     }
 }
