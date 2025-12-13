@@ -152,18 +152,8 @@ class ApiService {
         return res.data;
     }
 
-    async getAllFoodLogs(): Promise<FoodLogEntry[]> {
-        const res = await this.client.get<FoodLogEntry[]>('/api/foodlogs');
-        return res.data;
-    }
-
     async getTodaysFoodLogs(): Promise<FoodLogEntry[]> {
         const res = await this.client.get<FoodLogEntry[]>('/api/foodlogs/today');
-        return res.data;
-    }
-
-    async getFoodLogById(id: number): Promise<FoodLogEntry> {
-        const res = await this.client.get<FoodLogEntry>(`/api/foodlogs/${id}`);
         return res.data;
     }
 

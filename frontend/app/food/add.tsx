@@ -30,7 +30,7 @@ import {
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { insertFoodLog, type FoodLogEntry } from "../../db/logDb";
+import api, { type FoodLogEntry } from "../services/api";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAppFonts } from "@/utils/fonts";
 
@@ -221,7 +221,7 @@ export default function AddFoodScreen() {
   // and stores *per-serving* nutrition (perCal / perProtein / …)
   // together with the total amount.
   // ----------------------------------------------------
-  const handleAddToLog = () => {
+  const handleAddToLog = async () => {
     let totalAmount: number; // total ml/g
     let servings: number;
 
@@ -257,7 +257,7 @@ export default function AddFoodScreen() {
     //   • calories    = per-serving calories (NOT divided by refSize)
     //   • protein ... = per-serving macros
     const entry: FoodLogEntry = {
-      fdcId,
+      fdcId: String(fdcId),
       description,
       brandName,
       category,
@@ -272,14 +272,14 @@ export default function AddFoodScreen() {
     };
 
     try {
-      const id = insertFoodLog(entry);
-      console.log("Food log inserted with id:", id, "entry:", entry);
+      const savedEntry = await api.createFoodLog(entry);
+      console.log("Food log created with id:", savedEntry.id, "entry:", savedEntry);
       router.back();
     } catch (e: any) {
       console.error(e);
       Alert.alert(
         "Error",
-        e?.message ?? "Failed to insert food log. Please try again."
+        e?.message ?? "Failed to save food log. Please try again."
       );
     }
   };

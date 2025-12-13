@@ -31,10 +31,7 @@ import {
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 
-import {
-  type FoodLogEntry,
-  updateFoodLogAmountAndNotes,
-} from "../../db/logDb";
+import api, { type FoodLogEntry } from "../services/api";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAppFonts } from "@/utils/fonts";
 
@@ -137,7 +134,7 @@ export default function EditLogScreen() {
       typeof unit === "string" &&
       unit !== "serving";
 
-    if (!hasRealServingInfo) return amt; // legacy: amount 本身就是 servings
+    if (!hasRealServingInfo) return amt;
     return amt / sz!;
   };
 
@@ -171,7 +168,6 @@ export default function EditLogScreen() {
       unit !== "serving";
 
     if (newMode === "UNIT" && !hasRealServingInfo) {
-      // 没有真实重量信息时，不允许切到 By g/ml
       return;
     }
 
@@ -203,9 +199,9 @@ export default function EditLogScreen() {
   };
 
   // ============================================
-  // Save changes to SQLite
+  // Save changes to backend API
   // ============================================
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!entry || !entry.id) {
       Alert.alert("Error", "Log entry not loaded");
       return;
@@ -224,7 +220,13 @@ export default function EditLogScreen() {
     }
 
     try {
-      updateFoodLogAmountAndNotes(entry.id, String(newAmount), notes.trim());
+      const updatedEntry: FoodLogEntry = {
+        ...entry,
+        amount: String(newAmount),
+        notes: notes.trim()
+      };
+
+      await api.updateFoodLog(entry.id, updatedEntry);
       Alert.alert("Saved", "Log entry updated.", [
         {
           text: "OK",
@@ -392,8 +394,8 @@ export default function EditLogScreen() {
               mode === "SERVINGS"
                 ? "e.g. 2"
                 : refUnit === "ml"
-                ? "e.g. 250"
-                : "e.g. 100"
+                  ? "e.g. 250"
+                  : "e.g. 100"
             }
             placeholderTextColor="#95a99c"
           />

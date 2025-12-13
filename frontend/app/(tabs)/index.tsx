@@ -4,7 +4,7 @@ import { StyleSheet, ScrollView, View, TouchableOpacity, Alert, Text, ActivityIn
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAppFonts } from "@/utils/fonts";
-import { getLogsForDate, deleteLogById, type FoodLogEntry } from "../../db/logDb";
+import api, { type FoodLogEntry } from "../services/api";
 
 const format1 = (v: number) => v.toFixed(1);
 
@@ -56,23 +56,42 @@ export default function TodayLogScreen() {
   const [entries, setEntries] = useState<FoodLogEntry[]>([]);
   const [summary, setSummary] = useState<DailySummary | null>(null);
 
-  const loadForDate = useCallback((date: string) => {
-    const logs = getLogsForDate(date);
-    setEntries(logs);
+  const loadForDate = useCallback(async (date: string) => {
+    try {
+      // today
+      const todayStr = getTodayLocal();
+      let logs: FoodLogEntry[];
 
-    const totals = logs.reduce<DailySummary>(
-      (acc, entry) => {
-        const servings = computeServings(entry);
-        acc.calories += (entry.calories ?? 0) * servings;
-        acc.protein += (entry.protein ?? 0) * servings;
-        acc.fat += (entry.fat ?? 0) * servings;
-        acc.carbs += (entry.carbs ?? 0) * servings;
-        return acc;
-      },
-      { calories: 0, protein: 0, fat: 0, carbs: 0 }
-    );
+      if (date === todayStr) {
+        logs = await api.getTodaysFoodLogs();
+      } else {
+        // other dates
+        const startDate = date;
+        const endDate = date;
+        logs = await api.getFoodLogsByDateRange(startDate, endDate);
+      }
 
-    setSummary(totals);
+      setEntries(logs);
+
+      const totals = logs.reduce<DailySummary>(
+        (acc, entry) => {
+          const servings = computeServings(entry);
+          acc.calories += (entry.calories ?? 0) * servings;
+          acc.protein += (entry.protein ?? 0) * servings;
+          acc.fat += (entry.fat ?? 0) * servings;
+          acc.carbs += (entry.carbs ?? 0) * servings;
+          return acc;
+        },
+        { calories: 0, protein: 0, fat: 0, carbs: 0 }
+      );
+
+      setSummary(totals);
+    } catch (error: any) {
+      console.error('Failed to load food logs:', error);
+      Alert.alert('Error', 'Failed to load food logs. Please try again.');
+      setEntries([]);
+      setSummary({ calories: 0, protein: 0, fat: 0, carbs: 0 });
+    }
   }, []);
 
   useFocusEffect(
@@ -92,9 +111,14 @@ export default function TodayLogScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            deleteLogById(entry.id!);
-            loadForDate(currentDate);
+          onPress: async () => {
+            try {
+              await api.deleteFoodLog(entry.id!);
+              loadForDate(currentDate);
+            } catch (error: any) {
+              console.error('Failed to delete food log:', error);
+              Alert.alert('Error', 'Failed to delete entry. Please try again.');
+            }
           },
         },
       ]
