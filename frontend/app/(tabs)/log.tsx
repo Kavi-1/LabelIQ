@@ -13,8 +13,10 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
+import * as ImagePicker from 'expo-image-picker';
 import api, { FoodAnalysisResult } from "../services/api";
 import BarcodeScanner from "../../components/BarcodeScanner";
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -42,7 +44,7 @@ export default function LogScreen() {
   const [scannerVisible, setScannerVisible] = useState(false);
 
   // Photo analysis states
-  const [imageUrl, setImageUrl] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [photoAnalysisResult, setPhotoAnalysisResult] = useState<FoodAnalysisResult | null>(null);
 
@@ -109,27 +111,35 @@ export default function LogScreen() {
   // photo analysis with AI
   const handlePhotoAnalysis = async () => {
     setResult(null);
-    const url = imageUrl.trim();
 
-    if (!url) {
-      setError('Please enter an image URL');
+    // Request permissions
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please grant permission to access your photos');
       return;
     }
 
-    // make sure URL is valid 
-    try {
-      new URL(url);
-    } catch {
-      setError('Please enter a valid URL (start with http:// or https://)');
+    // Pick image
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (result.canceled) {
       return;
     }
+
+    const imageUri = result.assets[0].uri;
+    setSelectedImage(imageUri);
 
     setAnalyzingPhoto(true);
     setError(null);
     setPhotoAnalysisResult(null);
 
     try {
-      const analysis = await api.analyzeFood(url);
+      const analysis = await api.analyzeFood(imageUri);
       setPhotoAnalysisResult(analysis);
     } catch (e: any) {
       console.error('Photo analysis error:', e);
@@ -229,25 +239,9 @@ export default function LogScreen() {
             <Text style={styles.aiAnalysisTitle}>AI Photo Analysis</Text>
           </View>
 
-          <View style={styles.searchInputContainer}>
-            <IconSymbol size={20} name="photo" color="#95a99c" />
-            <TextInput
-              style={styles.input}
-              placeholder="Paste image URL..."
-              placeholderTextColor="#95a99c"
-              value={imageUrl}
-              onChangeText={setImageUrl}
-              onSubmitEditing={handlePhotoAnalysis}
-              returnKeyType="go"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {imageUrl.length > 0 && (
-              <TouchableOpacity onPress={() => setImageUrl('')}>
-                <IconSymbol size={20} name="xmark.circle.fill" color="#95a99c" />
-              </TouchableOpacity>
-            )}
-          </View>
+          <Text style={styles.aiAnalysisDescription}>
+            Take or select a photo of your food to get instant nutritional analysis
+          </Text>
 
           <TouchableOpacity
             onPress={handlePhotoAnalysis}
@@ -260,9 +254,9 @@ export default function LogScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.analyzeButton}
             >
-              <IconSymbol size={20} name="wand.and.stars" color="#ffffff" />
+              <IconSymbol size={20} name="photo.on.rectangle" color="#ffffff" />
               <Text style={styles.analyzeButtonText}>
-                {analyzingPhoto ? 'Analyzing...' : 'Analyze Food'}
+                {analyzingPhoto ? 'Analyzing...' : 'Select Photo'}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -502,6 +496,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2d6a4f',
     fontFamily: 'Poppins-SemiBold',
+  },
+
+  aiAnalysisDescription: {
+    fontSize: 14,
+    color: '#52796f',
+    fontFamily: 'Poppins-Regular',
+    marginBottom: 15,
+    textAlign: 'center',
   },
 
   analyzeButtonWrapper: {

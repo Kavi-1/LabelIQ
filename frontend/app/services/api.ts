@@ -73,7 +73,7 @@ class ApiService {
     private client: AxiosInstance;
 
     constructor(baseURL = DEFAULT_BASE) {
-        this.client = axios.create({ baseURL, timeout: 10000 });
+        this.client = axios.create({ baseURL, timeout: 20000 });
     }
 
     // setBaseUrl(url: string) {
@@ -137,11 +137,28 @@ class ApiService {
         return res.data;
     }
 
-    async analyzeFood(imageUrl: string): Promise<FoodAnalysisResult> {
+    async analyzeFood(imageUri: string): Promise<FoodAnalysisResult> {
+        const formData = new FormData();
+
+        // create file object from imageUri
+        const filename = imageUri.split('/').pop() || 'photo.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+        formData.append('image', {
+            uri: imageUri,
+            name: filename,
+            type: type,
+        } as any);
+
         const res = await this.client.post<FoodAnalysisResult>(
             '/api/classify/analyze',
-            null,
-            { params: { imageUrl } }
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            }
         );
         return res.data;
     }

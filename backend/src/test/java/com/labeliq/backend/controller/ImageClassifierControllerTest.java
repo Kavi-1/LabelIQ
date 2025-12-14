@@ -14,26 +14,22 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(
-        controllers = ImageClassifierController.class,
-        excludeFilters = @ComponentScan.Filter(
-                type = FilterType.ASSIGNABLE_TYPE,
-                classes = JwtAuthenticationFilter.class
-        )
-)
+@WebMvcTest(controllers = ImageClassifierController.class, excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class))
 @AutoConfigureMockMvc(addFilters = false)
 @Import(ImageClassifierControllerTest.MockConfig.class)
 @ActiveProfiles("test")
 class ImageClassifierControllerTest {
-
 
     @Autowired
     MockMvc mockMvc;
@@ -50,17 +46,23 @@ class ImageClassifierControllerTest {
                 .thenReturn("OK");
 
         mockMvc.perform(get("/api/classify")
-                        .param("imageUrl", "http://test"))
+                .param("imageUrl", "http://test"))
                 .andExpect(status().isOk());
     }
 
     @Test
     void post_analyze_endpoint_executes() throws Exception {
-        when(foodVisionService.analyzeImage("http://test"))
+        MockMultipartFile mockFile = new MockMultipartFile(
+                "image",
+                "test.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "fake image content".getBytes());
+
+        when(foodVisionService.analyzeImage(any(byte[].class)))
                 .thenReturn(new FoodAnalysisResult());
 
-        mockMvc.perform(post("/api/classify/analyze")
-                        .param("imageUrl", "http://test"))
+        mockMvc.perform(multipart("/api/classify/analyze")
+                .file(mockFile))
                 .andExpect(status().isOk());
     }
 

@@ -4,9 +4,12 @@ import com.labeliq.backend.dto.FoodAnalysisResult;
 import com.labeliq.backend.service.FoodVisionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.labeliq.backend.service.ImageClassifierService;
 import com.spoonacular.client.ApiException;
+
+import java.io.IOException;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,7 +25,7 @@ public class ImageClassifierController {
     }
 
     @PostMapping("/analyze")
-    public FoodAnalysisResult analyzeFood(@RequestParam String imageUrl) {
-        return foodVisionService.analyzeImage(imageUrl);
+    public FoodAnalysisResult analyzeFood(@RequestParam("image") MultipartFile image) throws IOException {
+        return foodVisionService.analyzeImage(image.getBytes());
     }
 }
