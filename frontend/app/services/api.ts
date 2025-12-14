@@ -1,7 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
 
 // works with IOS simulator
-const DEFAULT_BASE = 'http://localhost:8080';
+// const DEFAULT_BASE = 'http://localhost:8080';
+const DEFAULT_BASE = 'https://labeliq-production.up.railway.app';
 
 export interface RegisterRequest {
     username: string;
